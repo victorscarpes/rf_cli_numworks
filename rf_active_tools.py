@@ -1,6 +1,5 @@
 import math as mt
 import cmath as cm
-import matplotlib.pyplot as plt
 
 pi: float = mt.pi
 j: complex = complex(0, 1)
@@ -139,97 +138,6 @@ def pol(r: int | float, theta: int | float) -> complex:
     return r*cm.exp(j*theta)
 
 
-def resistance_circle(r: int | float, d: float = 0.1, N_max: int = 100) -> None:
-    """
-    Plots a circle of constant resistance on the Smith chart. Does not show the plot.
-
-    Args:
-        r (int | float): Normalized resistance.
-        d (float, optional): Distance between consecutive points. If the distance is such that more than N_max points are needed, limit it at N_max. Defaults to 0.1.
-        N_max (int, optional): Maximum amount of points. Defaults to 100.
-    """
-
-    if isinf(r):
-        plt.plot(1, 0, color="grey")
-
-    R = 1/(1+r)
-
-    N: int = min(N_max, 1+mt.floor(2*pi/mt.acos(1-(d**2)/(2*R**2))))
-
-    theta_list: list[float] = [(2*pi*n)/(N-1) for n in range(N)]
-
-    x_list: list[float] = [r/(r+1) + R*mt.cos(theta) for theta in theta_list]
-    y_list: list[float] = [R*mt.sin(theta) for theta in theta_list]
-
-    plt.plot(x_list, y_list, color="grey")
-
-
-def reactance_circle(x: int | float, d: float = 0.1, N_max: int = 100) -> None:
-    """
-    Plots a circle of constant reactance on the Smith chart. Does not show the plot.
-
-    Args:
-        x (int | float): Normalized reactance.
-        d (float, optional): Distance between consecutive points. If the distance is such that more than N_max points are needed, limit it at N_max. Defaults to 0.1.
-        N_max (int, optional): Maximum amount of points. Defaults to 100.
-    """
-
-    if isinf(x):
-        plt.plot(1, 0, color="grey")
-
-    theta_min: float = 0
-    theta_max: float = 0
-
-    if x < 0:
-        theta_min = 3*pi/2
-        theta_max = 2*pi+2*mt.atan((x+1)/(x-1))
-    elif x == 0:
-        plt.plot((-1, 1), (0, 0), color="grey")
-        return
-    elif 0 < x < 1:
-        theta_min = 2*pi+2*mt.atan((x+1)/(x-1))
-        theta_max = 3*pi/2
-    elif x == 1:
-        theta_min = pi
-        theta_max = 3*pi/2
-    else:
-        theta_min = 2*mt.atan((x+1)/(x-1))
-        theta_max = 3*pi/2
-
-    d_theta: float = theta_max - theta_min
-
-    R = 1/x
-
-    N: int = min(N_max, 1+mt.floor(d_theta/mt.acos(1-(d**2)/(2*R**2))))
-
-    theta_list: list[float] = [theta_min+(d_theta*n)/(N-1) for n in range(N)]
-
-    x_list: list[float] = [1 + R*mt.cos(theta) for theta in theta_list]
-    y_list: list[float] = [1/x + R*mt.sin(theta) for theta in theta_list]
-
-    plt.plot(x_list, y_list, color="grey")
-
-
-def plot_smith(d: float = 0.1, N_max: int = 1000) -> None:
-    """
-    Plots a Smith chart with impedance lines. Does not show the plot.
-
-    Args:
-        d (float, optional): Distance between consecutive points. If the distance is such that more than N_max points are needed per circle, limit it at N_max. Defaults to 0.1.
-        N_max (int, optional): Maximum amount of points for all circlescombined. Defaults to 1000.
-    """
-
-    plt.axis(False)
-    plt.axis((-1.7, 1.7, -1.2, 1.2))
-    plt.grid(False)
-
-    for r in (0, 1/3, 1, 3):
-        resistance_circle(r, d, N_max)
-
-    for x in (-2, -1, 1-mt.sqrt(2), 0, mt.sqrt(2)-1, 1, 2):
-        reactance_circle(x, d, N_max)
-
-
 def z_to_s(Z: int | float | complex, Z0: int | float | complex = 50) -> complex:
     """
     Converts the given impedance to it's corresponding reflection coefficient.
@@ -272,6 +180,102 @@ def s_to_z(gamma: int | float | complex, Z0: int | float | complex = 50) -> comp
     return Z0*(1+gamma)/(1-gamma)
 
 
+def source_stab_circle(S: tuple[complex, complex, complex, complex]) -> tuple[complex, float]:
+    """
+    Calculates the center and radius of the instability circle at the source plane.
+
+    Args:
+        S (tuple[complex, complex, complex, complex]): Unfolded scattering matrix (S11, S21, S12, S22).
+
+    Returns:
+        tuple[complex, float]: (Ocs, rs)
+            Ocs (complex): Center of the instability circle.
+            rs (float): Radius of instability circle.
+    """
+
+    S11: complex = S[0]
+    S21: complex = S[1]
+    S12: complex = S[2]
+    S22: complex = S[3]
+    delta: complex = S11*S22-S12*S21
+
+    Ocs_numer: complex = conj(S11-delta*conj(S22))
+    Ocs_denom: float = abs(S11)**2 - abs(delta)**2
+    Ocs: complex
+
+    if Ocs_numer == 0 and Ocs_denom == 0:
+        Ocs = nan
+    elif Ocs_numer != 0 and Ocs_denom == 0:
+        Ocs = inf
+    elif isinf(Ocs_denom) and isinf(Ocs_numer):
+        Ocs = nan
+    else:
+        Ocs = Ocs_numer/Ocs_denom
+
+    rs_numer: float = abs(S12*S21)
+    rs_denom: float = abs(abs(S11)**2 - abs(delta)**2)
+    rs: float
+
+    if rs_numer == 0 and rs_denom == 0:
+        rs = nan.real
+    elif rs_numer != 0 and rs_denom == 0:
+        rs = inf.real
+    elif isinf(rs_denom) and isinf(rs_numer):
+        rs = nan.real
+    else:
+        rs = rs_numer/rs_denom
+
+    return (Ocs, rs)
+
+
+def load_stab_circle(S: tuple[complex, complex, complex, complex]) -> tuple[complex, float]:
+    """
+    Calculates the center and radius of the instability circle at the load plane.
+
+    Args:
+        S (tuple[complex, complex, complex, complex]): Unfolded scattering matrix (S11, S21, S12, S22).
+
+    Returns:
+        tuple[complex, float]: (Ocl, rl)
+            Ocl (complex): Center of the instability circle.
+            rl (float): Radius of instability circle.
+    """
+
+    S11: complex = S[0]
+    S21: complex = S[1]
+    S12: complex = S[2]
+    S22: complex = S[3]
+    delta: complex = S11*S22-S12*S21
+
+    Ocl_numer: complex = conj(S22-delta*conj(S11))
+    Ocl_denom: float = abs(S22)**2 - abs(delta)**2
+    Ocl: complex
+
+    if Ocl_numer == 0 and Ocl_denom == 0:
+        Ocl = nan
+    elif Ocl_numer != 0 and Ocl_denom == 0:
+        Ocl = inf
+    elif isinf(Ocl_denom) and isinf(Ocl_numer):
+        Ocl = nan
+    else:
+        Ocl = Ocl_numer/Ocl_denom
+
+    rl_numer: float = abs(S12*S21)
+    rl_denom: float = abs(abs(S22)**2 - abs(delta)**2)
+    rl: float
+
+    if rl_numer == 0 and rl_denom == 0:
+        rl = nan.real
+    elif rl_numer != 0 and rl_denom == 0:
+        rl = inf.real
+    elif isinf(rl_denom) and isinf(rl_numer):
+        rl = nan.real
+    else:
+        rl = rl_numer/rl_denom
+
+    return (Ocl, rl)
+
+
 def input_reflection(S: tuple[complex, complex, complex, complex], gammaL: int | float | complex) -> complex:
     """
     Calculates the reflection coefficient at the input of a 2-port network when the output is loaded.
@@ -283,8 +287,6 @@ def input_reflection(S: tuple[complex, complex, complex, complex], gammaL: int |
     Returns:
         complex: Reflection coefficient at the input.
     """
-
-    # TODO not workin for passtrough networks
 
     S11: complex = S[0]
     S21: complex = S[1]
@@ -311,8 +313,6 @@ def output_reflection(S: tuple[complex, complex, complex, complex], gammaS: int 
     Returns:
         complex: Reflection coefficient at the output.
     """
-
-    # TODO not workin for passtrough networks
 
     S11: complex = S[0]
     S21: complex = S[1]
@@ -617,8 +617,8 @@ def unilateral_test(S: tuple[complex, complex, complex, complex]) -> tuple[float
     Returns:
         tuple[float, float, float]: (U, lim_inf, lim_sup)
             U (float): Unilaterality factor.
-            lim_inf: Inferior limit for G_T/G_TU.
-            lim_sup: Superior limit for G_T/G_TU.
+            lim_inf (float): Inferior limit for G_T/G_TU.
+            lim_sup (float): Superior limit for G_T/G_TU.
     """
 
     S11: complex = S[0]
