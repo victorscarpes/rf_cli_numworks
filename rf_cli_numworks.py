@@ -95,6 +95,14 @@ muL: float
 muS: float
 muS, muL = mu_stab(S)
 
+Ocs: complex
+rs: float
+Ocs, rs = source_stab_circle(S)
+
+Ocl: complex
+rl: float
+Ocl, rl = load_stab_circle(S)
+
 U: float
 lim_inf: float
 lim_sup: float
@@ -144,9 +152,10 @@ loop_flag: bool = True
 
 while loop_flag:
     print("\n"+43*"-")
-    print("1 - Gain metrics")
-    print("2 - Unilaterality metrics")
-    print("3 - Stability metrics")
+    print("0 - Gain metrics")
+    print("1 - Unilaterality metrics")
+    print("2 - Stability metrics")
+    print("3 - Stability circles")
     print("4 - Simultaneous matching")
     print("5 - Input low-pass L network")
     print("6 - Input high-pass L network")
@@ -157,7 +166,7 @@ while loop_flag:
     print("\nEnter operation or press [ENTER] to end")
     str_in = input("the program: ")
 
-    if str_in == "1":  # Gain metrics
+    if str_in == "0":  # Gain metrics
         print("\n"+43*"-")
         print("G_T = "+sf.round_fix(dB(Gt), unit="dB"))
         print("G_A = "+sf.round_fix(dB(Ga), unit="dB"))
@@ -171,7 +180,7 @@ while loop_flag:
 
         input("\nPress [ENTER] to continue.")
 
-    elif str_in == "2":  # Unilaterality metrics
+    elif str_in == "1":  # Unilaterality metrics
         print("\n"+43*"-")
         print("G_TU = "+sf.round_fix(dB(Gtu), unit="dB"))
         print("U = "+sf.round_fix(U))
@@ -180,7 +189,7 @@ while loop_flag:
 
         input("\nPress [ENTER] to continue.")
 
-    elif str_in == "3":  # Stability metrics
+    elif str_in == "2":  # Stability metrics
         print("\n"+43*"-")
         print("K = "+sf.round_fix(K))
         print("|Δ| = "+sf.round_fix(abs(delta)))
@@ -199,6 +208,19 @@ while loop_flag:
         elif K < -1:
             print("\nNetwork is unmatchable and unconditionally")
             print("unstable.")
+
+        input("\nPress [ENTER] to continue.")
+
+    elif str_in == "3":  # Stability circles
+        print("\n"+43*"-")
+
+        print("|O_S| = "+sf.round_fix(abs(Ocs)))
+        print("arg(O_S) = "+sf.round_fix(cm.phase(Ocs)*180/pi, unit="deg"))
+        print("r_S = "+sf.round_fix(rs))
+
+        print("\n|O_L| = "+sf.round_fix(abs(Ocl)))
+        print("arg(O_L) = "+sf.round_fix(cm.phase(Ocl)*180/pi, unit="deg"))
+        print("r_L = "+sf.round_fix(rl))
 
         input("\nPress [ENTER] to continue.")
 
